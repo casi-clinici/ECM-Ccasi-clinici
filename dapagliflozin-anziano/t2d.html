@@ -417,20 +417,30 @@ ISTRUZIONI PER IL FEEDBACK:
   }
 
   function formatAIResponse(text) {
-    text = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-    text = text.replace(/\*(.*?)\*/g, '<em>$1</em>');
-    const keywords = ['dapagliflozin', 'canagliflozin', 'insulina', 'Nota 100', 'ipoglicemia', 'cadute', 'deprescribing'];
-    keywords.forEach(kw => {
-      const re = new RegExp(`\\b(${kw})\\b`, 'g');
-      text = text.replace(re, `<span class="ref-pill">$1</span>`);
-    });
-    text = text.replace(/✅(.*)/g, '<div class="feedback-correct">✅$1</div>');
-    text = text.replace(/⚠️(.*)/g, '<div class="feedback-partial">⚠️$1</div>');
-    text = text.replace(/❌(.*)/g, '<div class="feedback-wrong">❌$1</div>');
-    if (text.includes('DOI') || text.includes('Nota 100') || text.includes('Jia') || text.includes('FAERS')) {
-      text += `<div class="guideline-ref" style="margin-top:10px"><strong>📚 Riferimento:</strong> Jia et al., Diabetes Res Clin Pract 2026 (FAERS) · Nota 100 AIFA</div>`;
-    }
-    return `<p style="line-height:1.7">${text}</p>`;
+          const blocks = text.split(/\n\s*\n/);
+          const html = blocks.map(block => {
+                    let b = block.trim();
+                    if (!b) return '';
+                    if (/^---+$/.test(b)) return '<hr>';
+                    if (/^###\s+/.test(b)) return `<h4>${b.replace(/^###\s+/, '')}</h4>`;
+                    if (/^##\s+/.test(b)) return `<h3>${b.replace(/^##\s+/, '')}</h3>`;
+                    if (/^#\s+/.test(b)) return `<h2>${b.replace(/^#\s+/, '')}</h2>`;
+                    b = b.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+                    b = b.replace(/\*(.*?)\*/g, '<em>$1</em>');
+                    const keywords = ['dapagliflozin', 'canagliflozin', 'insulina', 'Nota 100', 'ipoglicemia', 'cadute', 'deprescribing'];
+                    keywords.forEach(kw => {
+                                const re = new RegExp(`\\b(${kw})\\b`, 'g');
+                                b = b.replace(re, `<span class="ref-pill">$1</span>`);
+                    });
+                    if (/^✅/.test(b)) return `<div class="feedback-correct">${b.replace(/\n/g, '<br>')}</div>`;
+                    if (/^⚠️/.test(b)) return `<div class="feedback-partial">${b.replace(/\n/g, '<br>')}</div>`;
+                    if (/^❌/.test(b)) return `<div class="feedback-wrong">${b.replace(/\n/g, '<br>')}</div>`;
+                    return `<p style="line-height:1.7">${b.replace(/\n/g, '<br>')}</p>`;
+          }).join('');
+          const withRefs = (text.includes('DOI') || text.includes('Nota 100') || text.includes('Jia') || text.includes('FAERS'))
+            ? html + `<div class="guideline-ref" style="margin-top:10px"><strong>📚 Riferimento:</strong> Jia et al., Diabetes Res Clin Pract 2026 (FAERS) · Nota 100 AIFA</div>`
+                    : html;
+          return withRefs;
   }
 </script>
 
