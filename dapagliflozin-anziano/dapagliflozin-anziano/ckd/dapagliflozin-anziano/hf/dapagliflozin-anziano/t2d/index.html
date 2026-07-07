@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Simulatore Clinico — Dapagliflozin nel Diabete Tipo 2 dell'Anziano Complesso</title>
+<style>
+  :root {
+    --navy: #0f2744; --navy-mid: #1a3a5c; --navy-light: #e8f0f8;
+    --teal: #0d7a6b; --teal-light: #e0f5f2;
+    --amber: #b45309; --amber-light: #fef3c7;
+    --red-light: #fef2f2; --red: #b91c1c;
+    --green-light: #f0fdf4; --green: #166534;
+    --gray-50: #f8fafc; --gray-100: #f1f5f9; --gray-200: #e2e8f0; --gray-400: #94a3b8;
+    --gray-600: #475569; --gray-800: #1e293b; --white: #ffffff;
+    --font: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    --font-mono: 'Courier New', monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: var(--font); background: var(--gray-50); color: var(--gray-800); min-height: 100vh; }
+
+  .header { background: var(--navy); color: white; padding: 18px 32px; display: flex; align-items: center; gap: 16px; border-bottom: 3px solid var(--teal); }
+  .header-badge { background: var(--teal); color: white; font-size: 10px; font-weight: 700; letter-spacing: .1em; padding: 3px 8px; border-radius: 4px; text-transform: uppercase; }
+  .header h1 { font-size: 17px; font-weight: 600; letter-spacing: -.01em; }
+  .header p { font-size: 12px; opacity: .65; margin-top: 2px; }
+  .header-right { margin-left: auto; font-size: 11px; opacity: .5; text-align: right; line-height: 1.5; }
+
+  .main { display: grid; grid-template-columns: 340px 1fr; gap: 0; min-height: calc(100vh - 70px); }
+  .panel-left { background: white; border-right: 1px solid var(--gray-200); padding: 24px 20px; overflow-y: auto; }
+  .patient-avatar { width: 52px; height: 52px; background: var(--navy-light); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 22px; margin-bottom: 12px; border: 2px solid var(--navy); }
+  .patient-name { font-size: 18px; font-weight: 700; color: var(--navy); letter-spacing: -.02em; }
+  .patient-meta { font-size: 12px; color: var(--gray-600); margin-top: 2px; }
+
+  .alert-box { background: var(--amber-light); border: 1px solid #fcd34d; border-radius: 8px; padding: 10px 12px; margin: 14px 0; font-size: 12px; color: var(--amber); font-weight: 500; display: flex; gap: 8px; align-items: flex-start; }
+  .alert-box .icon { font-size: 15px; flex-shrink: 0; margin-top: 1px; }
+
+  .section-label { font-size: 10px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--gray-400); margin: 18px 0 8px; padding-bottom: 4px; border-bottom: 1px solid var(--gray-200); }
+  .info-row { display: flex; justify-content: space-between; align-items: baseline; padding: 5px 0; font-size: 13px; border-bottom: 1px solid var(--gray-100); }
+  .info-row:last-child { border-bottom: none; }
+  .info-label { color: var(--gray-600); }
+  .info-value { font-weight: 500; color: var(--gray-800); text-align: right; max-width: 55%; }
+  .info-value.danger { color: var(--red); }
+  .info-value.warn { color: var(--amber); }
+
+  .drug-badge { display: inline-block; background: var(--red-light); color: var(--red); border: 1px solid #fecaca; border-radius: 6px; font-size: 11px; font-weight: 600; padding: 3px 8px; margin: 2px 2px 2px 0; }
+  .drug-badge.current { background: var(--teal-light); color: var(--teal); border-color: #99e6de; }
+
+  .ecg-strip { background: #0a1628; border-radius: 6px; padding: 8px 10px; margin-top: 8px; font-family: var(--font-mono); font-size: 10px; color: #4ade80; letter-spacing: .05em; line-height: 1.6; }
+  .ref-pill { display: inline-block; background: var(--navy-light); color: var(--navy); border-radius: 4px; font-size: 10px; padding: 2px 6px; margin: 2px 2px 0 0; font-weight: 500; }
+
+  .panel-right { display: flex; flex-direction: column; height: calc(100vh - 70px); }
+  .step-nav { background: white; border-bottom: 1px solid var(--gray-200); padding: 12px 24px; display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+  .step-btn { background: var(--gray-100); border: 1px solid var(--gray-200); border-radius: 20px; padding: 5px 12px; font-size: 12px; font-weight: 500; color: var(--gray-600); cursor: pointer; transition: all .15s; white-space: nowrap; }
+  .step-btn:hover { background: var(--navy-light); color: var(--navy); }
+  .step-btn.active { background: var(--navy); color: white; border-color: var(--navy); }
+  .step-btn.done { background: var(--teal-light); color: var(--teal); border-color: #99e6de; }
+
+  .chat-area { flex: 1; overflow-y: auto; padding: 24px; display: flex; flex-direction: column; gap: 16px; background: var(--gray-50); }
+  .msg { max-width: 78%; line-height: 1.6; font-size: 14px; }
+  .msg.system { max-width: 100%; background: white; border: 1px solid var(--gray-200); border-radius: 12px; padding: 16px 18px; color: var(--gray-800); }
+  .msg.system .msg-header { font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--navy); margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+  .msg.user { align-self: flex-end; background: var(--navy); color: white; border-radius: 14px 14px 2px 14px; padding: 12px 16px; }
+  .msg.ai { align-self: flex-start; background: white; border: 1px solid var(--gray-200); border-radius: 2px 14px 14px 14px; padding: 14px 16px; }
+  .msg.ai .ai-label { font-size: 10px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--teal); margin-bottom: 6px; display: flex; align-items: center; gap: 5px; }
+  .msg.ai .ai-label::before { content: ''; display: inline-block; width: 6px; height: 6px; background: var(--teal); border-radius: 50%; }
+
+  .feedback-correct { background: var(--green-light); border: 1px solid #86efac; border-left: 4px solid var(--green); border-radius: 8px; padding: 12px 14px; margin-top: 10px; font-size: 13px; color: var(--green); }
+  .feedback-partial { background: var(--amber-light); border: 1px solid #fcd34d; border-left: 4px solid var(--amber); border-radius: 8px; padding: 12px 14px; margin-top: 10px; font-size: 13px; color: var(--amber); }
+  .feedback-wrong { background: var(--red-light); border: 1px solid #fca5a5; border-left: 4px solid var(--red); border-radius: 8px; padding: 12px 14px; margin-top: 10px; font-size: 13px; color: var(--red); }
+  .guideline-ref { background: var(--navy-light); border-radius: 6px; padding: 8px 12px; margin-top: 10px; font-size: 12px; color: var(--navy-mid); border-left: 3px solid var(--navy); }
+  .guideline-ref strong { font-weight: 600; }
+
+  .typing-dot { display: inline-block; width: 7px; height: 7px; background: var(--gray-400); border-radius: 50%; animation: bounce .9s infinite; }
+  .typing-dot:nth-child(2) { animation-delay: .15s; }
+  .typing-dot:nth-child(3) { animation-delay: .3s; }
+  @keyframes bounce { 0%, 80%, 100% { transform: translateY(0); } 40% { transform: translateY(-5px); } }
+
+  .input-area { background: white; border-top: 1px solid var(--gray-200); padding: 16px 24px; }
+  .input-hint { font-size: 11px; color: var(--gray-400); margin-bottom: 8px; display: flex; align-items: center; gap: 5px; }
+  .input-row { display: flex; gap: 10px; align-items: flex-end; }
+  .input-row textarea { flex: 1; border: 1px solid var(--gray-200); border-radius: 10px; padding: 11px 14px; font-family: var(--font); font-size: 14px; color: var(--gray-800); resize: none; min-height: 44px; max-height: 120px; line-height: 1.5; transition: border-color .15s; background: var(--gray-50); }
+  .input-row textarea:focus { outline: none; border-color: var(--navy); background: white; }
+  .send-btn { background: var(--navy); color: white; border: none; border-radius: 10px; width: 44px; height: 44px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; transition: background .15s; }
+  .send-btn:hover { background: var(--navy-mid); }
+  .send-btn:disabled { background: var(--gray-400); cursor: not-allowed; }
+
+  .quick-replies { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+  .qr-chip { background: var(--gray-100); border: 1px solid var(--gray-200); border-radius: 16px; padding: 5px 12px; font-size: 12px; color: var(--gray-600); cursor: pointer; transition: all .12s; white-space: nowrap; }
+  .qr-chip:hover { background: var(--navy-light); color: var(--navy); border-color: var(--navy); }
+
+  .score-bar { display: flex; gap: 8px; align-items: center; margin-top: 4px; flex-wrap: wrap; }
+  .score-item { font-size: 11px; padding: 2px 8px; border-radius: 10px; font-weight: 600; }
+  .score-item.ok { background: var(--green-light); color: var(--green); }
+  .score-item.warn { background: var(--amber-light); color: var(--amber); }
+  .score-item.ko { background: var(--red-light); color: var(--red); }
+
+  .sources-footer { background: var(--navy); color: rgba(255,255,255,.5); font-size: 10px; padding: 8px 24px; display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+  .sources-footer a { color: rgba(255,255,255,.6); text-decoration: none; }
+  .sources-footer a:hover { color: white; }
+
+  @media (max-width: 768px) {
+    .main { grid-template-columns: 1fr; }
+    .panel-left { display: none; }
+    .panel-right { height: calc(100vh - 70px); }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:3px">
+      <span class="header-badge">ECM Simulator</span>
+      <span class="header-badge" style="background:var(--teal)">AI-Powered</span>
+    </div>
+    <h1>Dapagliflozin nel Diabete Tipo 2 dell'Anziano Complesso — Maria C., 80 anni</h1>
+    <p>Simulatore di percorso terapeutico · Paziente gemello digitale</p>
+  </div>
+  <div class="header-right">
+    Evidenze: FAERS piede diabetico · dapa vs empa · Nota 100<br>
+    Focus: polifarmacia e fragilità
+  </div>
+</div>
+
+<div class="main">
+
+  <div class="panel-left">
+    <div class="patient-avatar">👵</div>
+    <div class="patient-name">Maria C., 80 anni</div>
+    <div class="patient-meta">Donna · Vedova, vive con la figlia · Lieve decadimento cognitivo</div>
+
+    <div class="alert-box">
+      <span class="icon">⚠️</span>
+      <div>Polifarmacia: 8 farmaci attivi. Storia di 2 cadute nell'ultimo anno. HbA1c 8.2%, non a target.</div>
+    </div>
+
+    <div class="section-label">Diagnosi e Parametri</div>
+    <div class="info-row"><span class="info-label">Diabete tipo 2</span><span class="info-value">Diagnosi 22 anni fa</span></div>
+    <div class="info-row"><span class="info-label">HbA1c</span><span class="info-value warn">8.2%</span></div>
+    <div class="info-row"><span class="info-label">eGFR</span><span class="info-value">61 mL/min (G2)</span></div>
+    <div class="info-row"><span class="info-label">BMI</span><span class="info-value warn">31 (obesità)</span></div>
+    <div class="info-row"><span class="info-label">MMSE</span><span class="info-value warn">24/30 (lieve deficit)</span></div>
+
+    <div class="section-label">Terapia Corrente (8 farmaci)</div>
+    <div style="padding:4px 0">
+      <span class="drug-badge current">Metformina 1000 mg x2</span>
+      <span class="drug-badge current">Insulina basale 22 UI</span>
+      <span class="drug-badge current">Ramipril 5 mg</span>
+      <span class="drug-badge current">Atorvastatina 40 mg</span>
+      <span class="drug-badge current">Omeprazolo</span>
+      <span class="drug-badge current">Paracetamolo al bisogno</span>
+    </div>
+
+    <div class="section-label">Comorbidità Rilevanti</div>
+    <div class="info-row"><span class="info-label">Ipertensione</span><span class="info-value warn">Grado 1</span></div>
+    <div class="info-row"><span class="info-label">Osteoartrosi</span><span class="info-value">Ginocchia, gestita</span></div>
+    <div class="info-row"><span class="info-label">Cadute (12 mesi)</span><span class="info-value danger">2 episodi, no fratture</span></div>
+    <div class="info-row"><span class="info-label">Infezione genitale</span><span class="info-value warn">Candidosi 1 episodio, 3 anni fa</span></div>
+
+    <div class="section-label">Valutazione Funzionale</div>
+    <div class="ecg-strip">
+      Gait speed: 0.7 m/s (ridotta)<br>
+      Vive con supporto della figlia<br>
+      Autonoma nelle IADL di base<br>
+      No storia di ipoglicemie gravi
+    </div>
+
+    <div class="section-label">Fonti Bibliografiche</div>
+    <span class="ref-pill">Jia 2026 (FAERS)</span>
+    <span class="ref-pill">Park 2026</span>
+    <span class="ref-pill">Bu 2026 (JACC)</span>
+    <span class="ref-pill">Nota 100 AIFA</span>
+
+  </div>
+
+  <div class="panel-right">
+
+    <div class="step-nav">
+      <button class="step-btn active" onclick="setStep(1, this)" id="step1-btn">1 · Rischio-beneficio</button>
+      <button class="step-btn" onclick="setStep(2, this)" id="step2-btn">2 · Scelta dell'agente</button>
+      <button class="step-btn" onclick="setStep(3, this)" id="step3-btn">3 · Prevenzione infezioni</button>
+      <button class="step-btn" onclick="setStep(4, this)" id="step4-btn">4 · Deprescribing insulina</button>
+      <button class="step-btn" onclick="setStep(5, this)" id="step5-btn">5 · Follow-up e cadute</button>
+    </div>
+
+    <div class="chat-area" id="chatArea">
+      <div class="msg system">
+        <div class="msg-header">📋 Presentazione del caso</div>
+        <p style="margin-bottom:10px">
+          <strong>Maria C., 80 anni</strong>, diabetica tipo 2 da 22 anni, vive con la figlia dopo la vedovanza. Assume <strong>8 farmaci</strong>, ha un lieve decadimento cognitivo (MMSE 24/30) e ha avuto <strong>2 cadute</strong> nell'ultimo anno, senza fratture.
+        </p>
+        <p style="margin-bottom:10px">
+          HbA1c 8.2%, non a target nonostante metformina e insulina basale 22 UI. eGFR 61 mL/min, BMI 31. Tre anni fa un episodio di candidosi genitale, risolto. Nessuna storia di ipoglicemie gravi.
+        </p>
+        <p>
+          La figlia ti chiede: "È giusto aggiungere ancora un farmaco a mia madre, con tutti quelli che già prende?"
+        </p>
+        <div class="score-bar" style="margin-top:12px">
+          <span class="score-item warn">Polifarmacia (8 farmaci)</span>
+          <span class="score-item warn">2 cadute nell'ultimo anno</span>
+          <span class="score-item ok">Funzione renale preservata (G2)</span>
+        </div>
+      </div>
+
+      <div class="msg system" id="step-question">
+        <div class="msg-header">❓ Step 1 — Valutazione rischio-beneficio</div>
+        <p style="margin-bottom:10px">Devi decidere se proporre un SGLT2 inibitore in un'anziana fragile con polifarmacia e storia di cadute. Qual è il tuo ragionamento iniziale?</p>
+        <div class="quick-replies">
+          <span class="qr-chip" onclick="sendQuick(this.textContent)">Il beneficio cardiorenale e la possibilità di ridurre l'insulina superano il rischio, va considerato</span>
+          <span class="qr-chip" onclick="sendQuick(this.textContent)">L'età e la polifarmacia controindicano qualsiasi nuovo farmaco</span>
+          <span class="qr-chip" onclick="sendQuick(this.textContent)">Le cadute pregresse controindicano assolutamente gli SGLT2i</span>
+          <span class="qr-chip" onclick="sendQuick(this.textContent)">Il decadimento cognitivo lieve è una controindicazione assoluta</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="input-area">
+      <div class="input-hint">💬 Rispondi liberamente — cosa faresti in questa situazione clinica?</div>
+      <div class="input-row">
+        <textarea id="userInput" placeholder="Scrivi la tua valutazione o decisione clinica..." rows="1" onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
+        <button class="send-btn" id="sendBtn" onclick="sendMessage()" title="Invia">→</button>
+      </div>
+    </div>
+
+    <div class="sources-footer">
+      <span>📚 Fonti:</span>
+      <a href="https://doi.org/10.1016/j.diabres.2026.113109" target="_blank">Jia 2026</a>
+      <a href="https://doi.org/10.1016/j.diabres.2026.113239" target="_blank">Park 2026</a>
+      <a href="https://doi.org/10.1016/j.jacc.2026.02.5123" target="_blank">Bu 2026</a>
+      <a href="https://www.aifa.gov.it/nota-100" target="_blank">Nota 100 AIFA</a>
+      <span style="margin-left:auto">Widget ECM · v1.0 · 2026</span>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  const SYSTEM_PROMPT = `Sei un tutor clinico esperto in geriatria e diabetologia, specializzato nella gestione del diabete tipo 2 nell'anziano fragile con polifarmacia, e nel training di medici di medicina generale (MMG) e internisti.
+
+CASO CLINICO:
+Paziente: Maria C., 80 anni, donna, diabete tipo 2 da 22 anni. Vedova, vive con la figlia.
+Parametri: HbA1c 8.2% (non a target), eGFR 61 mL/min (G2), BMI 31 (obesità), MMSE 24/30 (lieve decadimento cognitivo).
+Terapia attuale (8 farmaci): metformina 1000 mg x2, insulina basale 22 UI, ramipril 5 mg, atorvastatina 40 mg, omeprazolo, paracetamolo al bisogno, più altri 2 farmaci per osteoartrosi.
+Storia rilevante: 2 cadute nell'ultimo anno senza fratture, gait speed ridotta (0.7 m/s), un episodio di candidosi genitale 3 anni fa (risolto), nessuna storia di ipoglicemie gravi.
+
+STEP CORRENTE: {STEP}
+
+EVIDENZE CHIAVE su cui basare i feedback (tutte da PubMed, citare sempre autore/anno e DOI quando pertinente):
+1. Jia et al., Diabetes Res Clin Pract 2026 (analisi FAERS, farmacovigilanza): tra gli SGLT2i, canagliflozin mostra il segnale di rischio più marcato per infezioni del piede diabetico (ROR 162.84), mentre dapagliflozin (ROR 2.19) ed empagliflozin (ROR 0.56) non raggiungono soglie di segnale positivo — dato rilevante per la scelta dell'agente più sicuro nell'anziano fragile. DOI: 10.1016/j.diabres.2026.113109.
+2. Park et al., Diabetes Res Clin Pract 2026: studio di coorte coreano su oltre 135.000 pazienti, efficacia cardiorenale comparabile tra dapagliflozin ed empagliflozin in prevenzione primaria (HR 0.98; 95% CI 0.89-1.09), a supporto dell'intercambiabilità clinica tra i due agenti. DOI: 10.1016/j.diabres.2026.113239.
+3. Bu et al., J Am Coll Cardiol 2026: ampio studio comparativo real-world (oltre 1.2 milioni di pazienti) che mostra efficacia cardiovascolare sovrapponibile tra i principali SGLT2i e GLP-1RA, indicando che la scelta dell'agente va guidata da sicurezza, tollerabilità e preferenza del paziente più che da differenze di efficacia. DOI: 10.1016/j.jacc.2026.02.5123.
+4. Nota 100 AIFA (aggiornamento 2025-2026): definisce i criteri di prescrivibilità SSN degli SGLT2i nel diabete tipo 2, con ampliamento della possibilità di prescrizione diretta al MMG.
+5. Principio consolidato di deprescribing geriatrico: nell'anziano con HbA1c non a target ma già in insulina, l'aggiunta di un SGLT2i con buon profilo di sicurezza può consentire una riduzione gestita della dose insulinica, semplificando lo schema terapeutico e riducendo il rischio di ipoglicemia — sempre con monitoraggio glicemico ravvicinato nella fase di transizione.
+6. Principio consolidato di sicurezza geriatrica: gli SGLT2i non sono un fattore di rischio diretto per cadute (a differenza delle sulfaniluree/insulina in eccesso che causano ipoglicemia), ma richiedono attenzione all'idratazione e alla prevenzione della deplezione di volume, soprattutto in climi caldi o durante malattie intercorrenti.
+7. Principio consolidato: nella prevenzione delle infezioni genito-urinarie (più frequenti con SGLT2i in generale), è utile l'educazione all'igiene locale; una storia di candidosi lieve e risolta 3 anni fa NON è una controindicazione assoluta al trattamento.
+
+ISTRUZIONI PER IL FEEDBACK:
+- Valuta la risposta del professionista in modo costruttivo e specifico.
+- Se la risposta è corretta o parzialmente corretta: valida la parte giusta, aggiungi le evidenze di supporto con riferimento allo studio specifico.
+- Se la risposta è errata o incompleta: spiega l'errore con gentilezza, fornisci la risposta corretta ancorata ai dati.
+- Presta particolare attenzione alla "trappola formativa" di questo caso: evitare un SGLT2i per età avanzata e polifarmacia invece di considerare correttamente il beneficio cardiorenale e la possibilità di semplificare (deprescribing) lo schema insulinico.
+- Ogni feedback deve citare almeno uno studio specifico con DOI o la Nota 100 AIFA quando pertinente alla prescrivibilità.
+- Mantieni un tono da tutor clinico esperto: non giudicante, formativo, preciso, adatto a un pubblico di MMG/internisti.
+- Usa il nome "Maria" per rendere il feedback personale e contestualizzato.
+- Dopo il feedback, suggerisci sempre il prossimo passo logico nel percorso clinico.
+- Rispondi SEMPRE in italiano.
+- Tieni le risposte concise ma complete (max 200 parole).`;
+
+  const STEP_QUESTIONS = {
+    1: {
+      title: "Step 1 — Valutazione rischio-beneficio",
+      question: "Devi decidere se proporre un SGLT2 inibitore in un'anziana fragile con polifarmacia e storia di cadute. Qual è il tuo ragionamento iniziale?",
+      chips: [
+        "Il beneficio cardiorenale e la possibilità di ridurre l'insulina superano il rischio, va considerato",
+        "L'età e la polifarmacia controindicano qualsiasi nuovo farmaco",
+        "Le cadute pregresse controindicano assolutamente gli SGLT2i",
+        "Il decadimento cognitivo lieve è una controindicazione assoluta"
+      ]
+    },
+    2: {
+      title: "Step 2 — Scelta dell'agente",
+      question: "Decidi di procedere con un SGLT2 inibitore. Quale agente scegli per Maria e perché, considerando il suo profilo di rischio?",
+      chips: [
+        "Dapagliflozin: profilo di sicurezza favorevole per infezioni del piede rispetto a canagliflozin",
+        "Canagliflozin, per il maggior effetto sul peso corporeo",
+        "Qualsiasi agente della classe, sono tutti equivalenti in sicurezza",
+        "Evito la classe SGLT2i, opto per una sulfanilurea più economica"
+      ]
+    },
+    3: {
+      title: "Step 3 — Prevenzione delle infezioni genitali",
+      question: "Maria ha avuto un episodio di candidosi genitale 3 anni fa. Come gestisci questo elemento nella scelta e nel counseling?",
+      chips: [
+        "Non è una controindicazione assoluta: educo all'igiene locale e monitoro sintomi nelle prime settimane",
+        "Escludo definitivamente la classe SGLT2i per il precedente",
+        "Prescrivo profilassi antifungina continua preventiva",
+        "Ignoro il dato, non è rilevante per la scelta terapeutica"
+      ]
+    },
+    4: {
+      title: "Step 4 — Deprescribing dell'insulina",
+      question: "Dopo 2 mesi di dapagliflozin, l'HbA1c è scesa a 7.6%. Consideri una riduzione della dose insulinica. Come procedi?",
+      chips: [
+        "Riduco gradualmente l'insulina basale con monitoraggio glicemico ravvicinato, per ridurre il carico terapeutico e il rischio di ipoglicemia",
+        "Aumento l'insulina per raggiungere HbA1c <7% il prima possibile",
+        "Sospendo bruscamente tutta l'insulina in un'unica visita",
+        "Non modifico nulla, l'insulina va mantenuta invariata indipendentemente dal miglioramento"
+      ]
+    },
+    5: {
+      title: "Step 5 — Follow-up e prevenzione delle cadute",
+      question: "A 6 mesi Maria è migliorata metabolicamente ma la figlia segnala un episodio di lieve vertigine posturale. Come integri questo nel follow-up?",
+      chips: [
+        "Valuto idratazione, pressione arteriosa in ortostatismo e eventuale riduzione di altri farmaci ipotensivi, mantenendo dapagliflozin se non ci sono segni di disidratazione significativa",
+        "Sospendo subito dapagliflozin come unica causa possibile",
+        "Ignoro il sintomo, non è correlato alla terapia",
+        "Aumento la dose di ramipril per gestire meglio la pressione"
+      ]
+    }
+  };
+
+  let currentStep = 1;
+  let conversationHistory = [];
+  let isLoading = false;
+
+  function setStep(n, btn) {
+    currentStep = n;
+    document.querySelectorAll('.step-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    const q = STEP_QUESTIONS[n];
+    const chatArea = document.getElementById('chatArea');
+    const stepMsg = document.createElement('div');
+    stepMsg.className = 'msg system';
+    stepMsg.innerHTML = `
+      <div class="msg-header">📋 ${q.title}</div>
+      <p style="margin-bottom:10px">${q.question}</p>
+      <div class="quick-replies">
+        ${q.chips.map(c => `<span class="qr-chip" onclick="sendQuick(this.textContent)">${c}</span>`).join('')}
+      </div>
+    `;
+    chatArea.appendChild(stepMsg);
+    chatArea.scrollTop = chatArea.scrollHeight;
+  }
+
+  function sendQuick(text) {
+    document.getElementById('userInput').value = text;
+    sendMessage();
+  }
+
+  function autoResize(el) {
+    el.style.height = 'auto';
+    el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+  }
+
+  function handleKey(e) {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+  }
+
+  async function sendMessage() {
+    const input = document.getElementById('userInput');
+    const text = input.value.trim();
+    if (!text || isLoading) return;
+
+    input.value = '';
+    input.style.height = 'auto';
+    isLoading = true;
+    document.getElementById('sendBtn').disabled = true;
+
+    const chatArea = document.getElementById('chatArea');
+    const userMsg = document.createElement('div');
+    userMsg.className = 'msg user';
+    userMsg.textContent = text;
+    chatArea.appendChild(userMsg);
+
+    const typingMsg = document.createElement('div');
+    typingMsg.className = 'msg ai';
+    typingMsg.innerHTML = `<div class="ai-label">Tutor Clinico AI</div><span class="typing-dot"></span><span class="typing-dot"></span><span class="typing-dot"></span>`;
+    chatArea.appendChild(typingMsg);
+    chatArea.scrollTop = chatArea.scrollHeight;
+
+    conversationHistory.push({ role: 'user', content: text });
+
+    try {
+      const systemPrompt = SYSTEM_PROMPT.replace('{STEP}', `Step ${currentStep} — ${STEP_QUESTIONS[currentStep].title}`);
+      const response = await fetch('https://royal-surf-aa27.matteo-depetris61.workers.dev', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-6',
+          max_tokens: 1000,
+          system: systemPrompt,
+          messages: conversationHistory
+        })
+      });
+
+      const data = await response.json();
+      const aiText = data.content?.[0]?.text || 'Errore nella risposta AI.';
+      conversationHistory.push({ role: 'assistant', content: aiText });
+
+      typingMsg.innerHTML = `<div class="ai-label">Tutor Clinico AI</div><div>${formatAIResponse(aiText)}</div>`;
+
+      if (currentStep < 5) {
+        document.getElementById(`step${currentStep}-btn`).classList.add('done');
+        document.getElementById(`step${currentStep}-btn`).classList.remove('active');
+        const advanceHint = document.createElement('div');
+        advanceHint.style.cssText = 'text-align:center;margin:8px 0';
+        advanceHint.innerHTML = `<span class="qr-chip" style="background:var(--navy-light);color:var(--navy)" onclick="setStep(${currentStep+1}, document.getElementById('step${currentStep+1}-btn'))">Procedi allo Step ${currentStep+1} →</span>`;
+        chatArea.appendChild(advanceHint);
+      }
+    } catch (err) {
+      typingMsg.innerHTML = `<div class="ai-label">Tutor Clinico AI</div><div class="feedback-wrong">Errore di connessione all'API. Verifica che il widget sia caricato con una chiave API valida.</div>`;
+    }
+
+    chatArea.scrollTop = chatArea.scrollHeight;
+    isLoading = false;
+    document.getElementById('sendBtn').disabled = false;
+  }
+
+  function formatAIResponse(text) {
+    text = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+    text = text.replace(/\*(.*?)\*/g, '<em>$1</em>');
+    const keywords = ['dapagliflozin', 'canagliflozin', 'insulina', 'Nota 100', 'ipoglicemia', 'cadute', 'deprescribing'];
+    keywords.forEach(kw => {
+      const re = new RegExp(`\\b(${kw})\\b`, 'g');
+      text = text.replace(re, `<span class="ref-pill">$1</span>`);
+    });
+    text = text.replace(/✅(.*)/g, '<div class="feedback-correct">✅$1</div>');
+    text = text.replace(/⚠️(.*)/g, '<div class="feedback-partial">⚠️$1</div>');
+    text = text.replace(/❌(.*)/g, '<div class="feedback-wrong">❌$1</div>');
+    if (text.includes('DOI') || text.includes('Nota 100') || text.includes('Jia') || text.includes('FAERS')) {
+      text += `<div class="guideline-ref" style="margin-top:10px"><strong>📚 Riferimento:</strong> Jia et al., Diabetes Res Clin Pract 2026 (FAERS) · Nota 100 AIFA</div>`;
+    }
+    return `<p style="line-height:1.7">${text}</p>`;
+  }
+</script>
+
+</body>
+</html>
